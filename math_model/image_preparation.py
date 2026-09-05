@@ -9,7 +9,7 @@ def image_preparation(path):
     cropped = image[:, 160:1120]
     decimated = cropped[::3, ::3]
 
-    plt.imsave("decimated.png", decimated)
+    # plt.imsave("decimated.png", decimated)
 
     return decimated[:, :, 0], decimated[:, :, 1], decimated[:, :, 2]
 

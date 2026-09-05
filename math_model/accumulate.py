@@ -5,8 +5,8 @@ import numpy as np
 
 def accumulate(mask):
     rows, cols = mask.shape
-    x_coord = np.zeros((1, cols))
-    y_coord = np.zeros((rows, 1))
+    x_coord = np.zeros((1, cols), dtype=np.uint16)
+    y_coord = np.zeros((rows, 1), dtype=np.uint16)
     
     
     for i in range(0, cols):
