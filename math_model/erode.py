@@ -12,7 +12,7 @@ def erode(mask, enable):
             if (row == 0 or row == rows-1 or col == 0 or col == cols-1):
                 output_mask[row][col] = False
             else:
-                if (mask[row+1][col-1] and mask[row+1][col] and mask[row+1][col+1] and mask[row][col+1] and mask[row][col-1] and mask[row-1][col-1] and mask[row-1][col] and mask[row-1][col+1]):
+                if (mask[row+1][col-1] and mask[row+1][col] and mask[row+1][col+1] and mask[row][col+1] and mask[row][col-1] and mask[row-1][col-1] and mask[row-1][col] and mask[row-1][col+1] and mask[row][col]):
                     output_mask[row][col] = True
     return output_mask
 
