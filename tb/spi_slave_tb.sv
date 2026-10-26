@@ -1,6 +1,6 @@
-module spi_slave_tb;
-
-    int HALF_PER_CYCLES = 50;
+module spi_slave_tb #(
+    int unsigned SCLK_HALF_PERIOD = 5
+);
 
     logic clk = 1'b0;
     logic rst_n;
@@ -10,6 +10,7 @@ module spi_slave_tb;
     logic spi_miso;
     logic spi_miso_oe;
     logic drdy;
+    logic cfg_apply;
     logic p1_valid;
     logic p2_valid;
     logic [7:0] frame_count;
@@ -19,18 +20,33 @@ module spi_slave_tb;
     logic [15:0] p2_cnt;
     logic [15:0] p2_cx;
     logic [15:0] p2_cy;
+    logic [7:0] probe_u;
+    logic [7:0] probe_v;
+    logic [7:0] probe_y;
+    logic thumbnail_new_frame;
+    logic [1:0] thumbnail_stage_sel;
+    logic [7:0] thumbnail_data;
+    logic [15:0] p1_bbox_x_min;
+    logic [15:0] p1_bbox_y_min;
+    logic [15:0] p1_bbox_x_max;
+    logic [15:0] p1_bbox_y_max;
+    logic [15:0] p2_bbox_x_min;
+    logic [15:0] p2_bbox_y_min;
+    logic [15:0] p2_bbox_x_max;
+    logic [15:0] p2_bbox_y_max;
     logic [7:0] p1_u_min;
     logic [7:0] p1_u_max;
     logic [7:0] p1_v_min;
     logic [7:0] p1_v_max;
+    logic [7:0] p1_y_min;
     logic [7:0] p2_u_min;
     logic [7:0] p2_u_max;
     logic [7:0] p2_v_min;
     logic [7:0] p2_v_max;
-    logic [7:0] min_blob_size;
-    logic [7:0] y_min;
+    logic [7:0] p2_y_min;
+    logic [15:0] p1_min_blob;
+    logic [15:0] p2_min_blob;
     logic erode_en;
-    logic luma_gate_en;
     logic [1:0] debug_stage_sel;
 
     int errors = 0;
@@ -44,6 +60,7 @@ module spi_slave_tb;
         .spi_miso(spi_miso),
         .spi_miso_oe(spi_miso_oe),
         .drdy(drdy),
+        .cfg_apply(cfg_apply),
         .p1_valid(p1_valid),
         .p2_valid(p2_valid),
         .frame_count(frame_count),
@@ -53,18 +70,33 @@ module spi_slave_tb;
         .p2_cnt(p2_cnt),
         .p2_cx(p2_cx),
         .p2_cy(p2_cy),
+        .probe_u(probe_u),
+        .probe_v(probe_v),
+        .probe_y(probe_y),
+        .thumbnail_new_frame(thumbnail_new_frame),
+        .thumbnail_stage_sel(thumbnail_stage_sel),
+        .thumbnail_data(thumbnail_data),
+        .p1_bbox_x_min(p1_bbox_x_min),
+        .p1_bbox_y_min(p1_bbox_y_min),
+        .p1_bbox_x_max(p1_bbox_x_max),
+        .p1_bbox_y_max(p1_bbox_y_max),
+        .p2_bbox_x_min(p2_bbox_x_min),
+        .p2_bbox_y_min(p2_bbox_y_min),
+        .p2_bbox_x_max(p2_bbox_x_max),
+        .p2_bbox_y_max(p2_bbox_y_max),
         .p1_u_min(p1_u_min),
         .p1_u_max(p1_u_max),
         .p1_v_min(p1_v_min),
         .p1_v_max(p1_v_max),
+        .p1_y_min(p1_y_min),
         .p2_u_min(p2_u_min),
         .p2_u_max(p2_u_max),
         .p2_v_min(p2_v_min),
         .p2_v_max(p2_v_max),
-        .min_blob_size(min_blob_size),
-        .y_min(y_min),
+        .p2_y_min(p2_y_min),
+        .p1_min_blob(p1_min_blob),
+        .p2_min_blob(p2_min_blob),
         .erode_en(erode_en),
-        .luma_gate_en(luma_gate_en),
         .debug_stage_sel(debug_stage_sel)
     );
 
@@ -104,17 +136,17 @@ module spi_slave_tb;
         @(posedge clk);
         spi_sclk <= 1'b0;
         spi_mosi <= bin;
-        repeat (HALF_PER_CYCLES) @(posedge clk);
+        repeat (SCLK_HALF_PERIOD) @(posedge clk);
         spi_sclk <= 1'b1;
         bout = spi_miso;
-        repeat (HALF_PER_CYCLES) @(posedge clk);
+        repeat (SCLK_HALF_PERIOD) @(posedge clk);
         spi_sclk <= 1'b0;
     endtask
 
     task automatic spi_write(input logic [6:0] addr, input logic [7:0] data[$]);
         logic [7:0] rx;
         spi_cs_assert();
-        spi_transfer_byte({ 1'b0, addr }, rx);
+        spi_transfer_byte({ 1'b1, addr }, rx);
         for (int i = 0; i < data.size(); i++) begin
             spi_transfer_byte(data[i], rx);
         end
@@ -124,7 +156,7 @@ module spi_slave_tb;
     task automatic spi_read(input int num_bytes, input logic [6:0] addr, output logic [7:0] data[$]);
         logic [7:0] rx;
         spi_cs_assert();
-        spi_transfer_byte({ 1'b1, addr }, rx);
+        spi_transfer_byte({ 1'b0, addr }, rx);
         for (int i = 0; i < num_bytes; i++) begin
             spi_transfer_byte(8'h00, rx);
             data.push_back(rx);
@@ -136,6 +168,10 @@ module spi_slave_tb;
         logic [7:0] data[$];
         $timeformat(-9, 0, " ns");
 
+        cfg_apply <= 1'b0;
+        probe_u <= '0;
+        probe_v <= '0;
+        probe_y <= '0;
         p1_valid <= 1'b0;
         p2_valid <= 1'b0;
         frame_count <= '0;
@@ -145,6 +181,17 @@ module spi_slave_tb;
         p2_cnt <= '0;
         p2_cx <= '0;
         p2_cy <= '0;
+        thumbnail_new_frame <= 1'b0;
+        thumbnail_stage_sel <= '0;
+        thumbnail_data <= '0;
+        p1_bbox_x_min <= '0;
+        p1_bbox_y_min <= '0;
+        p1_bbox_x_max <= '0;
+        p1_bbox_y_max <= '0;
+        p2_bbox_x_min <= '0;
+        p2_bbox_y_min <= '0;
+        p2_bbox_x_max <= '0;
+        p2_bbox_y_max <= '0;
         do_reset();
 
         // test 1: read id back

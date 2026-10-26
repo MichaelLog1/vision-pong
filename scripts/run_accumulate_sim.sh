@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.."
 source /apps/reconfig/enable > /dev/null
 
 vlib -quiet questa/work
-vlog -quiet -sv -work questa/work rtl/accumulate.sv sim/accumulate_tb.sv
+vlog -quiet -sv -work questa/work rtl/accumulate.sv tb/accumulate_tb.sv
 
 # default test
 /apps/anaconda/bin/python math_model/accumulate.py
