@@ -61,19 +61,23 @@ def main():
 
             # heartbeat
             if prev_heartbeat is not None and prev_time is not None:
-                print(f"Heartbeat change/s: {((prev_heartbeat - heartbeat) & 0xFFFFFFFF) / (prev_time - now)}")
-            prev_heartbeat = heartbeat
+                print(f"Heartbeat change/s: {((heartbeat - prev_heartbeat) & 0xFFFFFFFF) / (now - prev_time)}")
 
             # r31
             data, vsync, href, pclk = shared.decode_r31(r31)
             print(f"r31 data: 0x{data:02x}, vsync: {vsync}, href: {href}, pclk: {pclk}")
 
             # cycle
+            print(f"Cycle: 0x{cycle:08x}")
             if prev_cycle is not None and prev_time is not None:
-                print(f"Cycle change/s: {((prev_cycle - cycle) & 0xFFFFFFFF) / (prev_time - now)}")
-                print(f"Cycle change/loop: {((prev_cycle - cycle) & 0xFFFFFFFF) / ((prev_heartbeat - heartbeat) & 0xFFFFFFFF)}")
-                print(f"Cycle status: {ctrl.counter_status(prev_cycle, cycle)}")
+                print(f"Cycle change/s: {((cycle - prev_cycle) & 0xFFFFFFFF) / (now - prev_time)}")
+                if (heartbeat == prev_heartbeat):
+                    print("HEARTBEAT STALLED")
+                else:
+                    print(f"Cycle change/loop: {((cycle - prev_cycle) & 0xFFFFFFFF) / ((heartbeat - prev_heartbeat) & 0xFFFFFFFF)}")
+                print(f"Cycle status: {ctrl.counter_status(cycle, prev_cycle)}")
             
+            prev_heartbeat = heartbeat
             prev_cycle = cycle
             prev_time = now
 
