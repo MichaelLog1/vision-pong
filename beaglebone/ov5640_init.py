@@ -225,7 +225,7 @@ class OV5640:
         default = iter(default_regs)
         for reg, data in zip(default, default):
             if (reg == DELAY):
-                time.sleep(data)
+                time.sleep(data * 0.001)
             else:
                 self.write(reg, data)
         
@@ -241,11 +241,13 @@ class OV5640:
         for reg, data in zip(yuv, yuv):
             self.write(reg, data)
 
-        print(f"chip ID 0x{self.chip_id()}")
-        print(f"clock ctrl 0x{self.read(0x4740)}")
-        print(f"ctrl reg 0x{self.read(0x4300)}")
+        self.write(0x503D, 0x80)
+
+        print(f"chip ID 0x{self.chip_id():04X}")
+        print(f"clock ctrl 0x{self.read(0x4740):04X}")
+        print(f"ctrl reg 0x{self.read(0x4300):04X}")
 
 if __name__ == "__main__":
-    cam = OV5640
+    cam = OV5640()
     cam.configure()
 
