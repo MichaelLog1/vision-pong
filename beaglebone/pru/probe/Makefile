@@ -50,36 +50,36 @@ OBJECTS=$(patsubst %,$(GEN_DIR)/%,$(SOURCES:.c=.object))
 all: printStart $(TARGET) printEnd
 
 printStart:
-    @echo ''
-    @echo '************************************************************'
-    @echo 'Building project: $(PROJ_NAME)'
+	@echo ''
+	@echo '************************************************************'
+	@echo 'Building project: $(PROJ_NAME)'
 
 printEnd:
-    @echo ''
-    @echo 'Output files can be found in the "$(GEN_DIR)" directory'
-    @echo ''
-    @echo 'Finished building project: $(PROJ_NAME)'
-    @echo '************************************************************'
-    @echo ''
+	@echo ''
+	@echo 'Output files can be found in the "$(GEN_DIR)" directory'
+	@echo ''
+	@echo 'Finished building project: $(PROJ_NAME)'
+	@echo '************************************************************'
+	@echo ''
 
 # Invokes the linker (-z flag) to make the .out file
 $(TARGET): $(OBJECTS) $(LINKER_COMMAND_FILE)
-    @echo ''
-    @echo 'Building target: $@'
-    @echo 'Invoking: PRU Linker'
-    $(PRU_CGT)/bin/clpru $(CFLAGS) -z -i$(PRU_CGT)/lib -i$(PRU_CGT)/include $(LFLAGS) -o $(TARGET) $(OBJECTS) -m$(MAP) $(LINKER_COMMAND_FILE) --library=libc.a $(LIBS)
-    @echo 'Finished building target: $@'
+	@echo ''
+	@echo 'Building target: $@'
+	@echo 'Invoking: PRU Linker'
+	$(PRU_CGT)/bin/clpru $(CFLAGS) -z -i$(PRU_CGT)/lib -i$(PRU_CGT)/include $(LFLAGS) -o $(TARGET) $(OBJECTS) -m$(MAP) $(LINKER_COMMAND_FILE) --library=libc.a $(LIBS)
+	@echo 'Finished building target: $@'
 
 # Invokes the compiler on all c files in the directory to create the object files
 $(GEN_DIR)/%.object: %.c
-    @mkdir -p $(GEN_DIR)
-    @echo ''
-    @echo 'Building file: $<'
-    @echo 'Invoking: PRU Compiler'
-    $(PRU_CGT)/bin/clpru --include_path=$(PRU_CGT)/include $(INCLUDE) $(CFLAGS) -fe $@ $<
+	@mkdir -p $(GEN_DIR)
+	@echo ''
+	@echo 'Building file: $<'
+	@echo 'Invoking: PRU Compiler'
+	$(PRU_CGT)/bin/clpru --include_path=$(PRU_CGT)/include $(INCLUDE) $(CFLAGS) -fe $@ $<
 
 install: $(TARGET)
-	-echo start | sudo tee /sys/class/remoteproc/remoteproc2/state
+	-echo stop | sudo tee /sys/class/remoteproc/remoteproc2/state
 	sudo cp $(TARGET) /lib/firmware/am335x-pru1-fw
 	echo start | sudo tee /sys/class/remoteproc/remoteproc2/state
 	cat /sys/class/remoteproc/remoteproc2/state 
@@ -89,16 +89,16 @@ install: $(TARGET)
 
 # Remove the $(GEN_DIR) directory
 clean:
-    @echo ''
-    @echo '************************************************************'
-    @echo 'Cleaning project: $(PROJ_NAME)'
-    @echo ''
-    @echo 'Removing files in the "$(GEN_DIR)" directory'
-    @rm -rf $(GEN_DIR)
-    @echo ''
-    @echo 'Finished cleaning project: $(PROJ_NAME)'
-    @echo '************************************************************'
-    @echo ''
-
+	@echo ''
+	@echo '************************************************************'
+	@echo 'Cleaning project: $(PROJ_NAME)'
+	@echo ''
+	@echo 'Removing files in the "$(GEN_DIR)" directory'
+	@rm -rf $(GEN_DIR)
+	@echo ''
+	@echo 'Finished cleaning project: $(PROJ_NAME)'
+	@echo '************************************************************'
+	@echo ''
+	
 # Includes the dependencies that the compiler creates (-ppd and -ppa flags)
 -include $(OBJECTS:%.object=%.pp)
