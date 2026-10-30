@@ -29,16 +29,11 @@ void main(void) {
     PRU1_CTRL.CTRL_bit.CTR_EN = 1;
         
     while (1) {
-        uint32_t curr_r31 = __R31;
         // wait until vsync goes high
-        while (!(curr_r31 & VSYNC)) {
-            curr_r31 = __R31;
-        }
+        while (!(__R31 & VSYNC));
 
         // now wait for vsync to go low
-        while (curr_r31 & VSYNC) {
-            curr_r31 = __R31;
-        }
+        while (__R31 & VSYNC);
 
         min = UINT32_MAX;
         max = 0;
@@ -46,30 +41,22 @@ void main(void) {
         for (i = 0; i < 240; i++) {
             blank = 0;
             // while HREF is low, count PCLK rising edges
-            while (!(curr_r31 & HREF)) {
+            while (!(__R31 & HREF)) {
                 // wait until pclk goes high
-                while (!(curr_r31 & PCLK)) {
-                    curr_r31 = __R31;
-                }
+                while (!(__R31 & PCLK));
 
                 // now wait for pclk to go low
-                while (curr_r31 & PCLK) {
-                    curr_r31 = __R31;
-                }
+                while (__R31 & PCLK);
                 blank++;
             }
             active = 0;
             // while HREF is high, count PCLK rising edges
-            while (curr_r31 & HREF) {
+            while (__R31 & HREF) {
                 // wait until pclk goes high
-                while (!(curr_r31 & PCLK)) {
-                    curr_r31 = __R31;
-                }
+                while (!(__R31 & PCLK));
 
                 // now wait for pclk to go low
-                while (curr_r31 & PCLK) {
-                    curr_r31 = __R31;
-                }
+                while (__R31 & PCLK);
                 active++;
             }
             if (active < min) {
