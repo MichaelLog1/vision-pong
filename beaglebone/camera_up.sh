@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # pin configuration
 config-pin P8_27 pruin
@@ -15,11 +16,11 @@ config-pin P8_46 pruin
 
 # release camera reset
 config-pin P8_13 gpio
-echo high | sudo tee /sys/class/gpio/gpio23/direction
+echo high | tee /sys/class/gpio/gpio23/direction
 
-# release camera de
+# release camera de (enables buffers)
 config-pin P8_30 gpio
-echo low | sudo tee /sys/class/gpio/gpio89/direction
+echo low | tee /sys/class/gpio/gpio89/direction
 
 # run init script
 python3 ov5640_init.py
