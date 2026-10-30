@@ -42,56 +42,32 @@ def main():
     ctrl = PhysMem(PRU1_CTRL_PHYS)
 
     prev_time = None
-    prev_heartbeat = None
-    prev_cycle = None
+    prev_frame_count = None
 
     try:
         while(True):
             now = time.monotonic()
-            magic = shared.word(PROBE_MAGIC)                     # shared[0]
-            heartbeat = shared.word(PROBE_HEARTBEAT)             # shared[1]
-            r31 = shared.word(PROBE_R31)                         # shared[2]
-            cycle = ctrl.word(PRU_CTRL_CYCLE)                    # shared[3] and crtl[3]
-            frame_period = shared.word(PROBE_FRAME_PERIOD)       # shared[4]
-            vsync_width = shared.word(PROBE_VSYNC_WIDTH)         # shared[5]
-            line_count = shared.word(PROBE_LINE_COUNT)           # shared[6]
-            href_high_total = shared.word(PROBE_HREF_HIGH_TOTAL) # shared[7]
+            magic = shared.word(0)
+            minimum = shared.word(4)
+            maximum = shared.word(5)
+            blank = shared.word(6)
+            frame_count = shared.word(7)
 
-            # magic
-            if (magic != PROBE_MAGIC_VALUE):
-                print(f"Magic: 0x{magic:08x} MAGIC INCORRECT")
+            if magic != PROBE_MAGIC_VALUE:
+                print(f"INCORRECT MAGIC: 0x{magic:08x}")
 
-            # heartbeat
-            if prev_heartbeat is not None and prev_time is not None:
-                print(f"Heartbeat change/s: {((heartbeat - prev_heartbeat) & 0xFFFFFFFF) / (now - prev_time)}")
-
-            # cycle
-            print(f"Cycle: 0x{cycle:08x}")
-
-            if (frame_period == 0):
-                print(f"fps: divide by zero")
+            if (prev_frame_count is not None):
+                print(f"elapsed time: {(now - prev_time) / (frame_count - prev_frame_count)}")
             else:
-                print(f"fps: {200000000 / frame_period}")
+                print("elapsed time: division by zero")
 
-            print(f"lines/frame: {line_count}")
-            print(f"vsync pulse width: {vsync_width / 200} us")
-
-            if (line_count == 0):
-                print(f"estimated PCLK: divide by zero")
-                print(f"timer/active line: divide by zero")
-            else:
-                print(f"timer/active line: {href_high_total/line_count/200} us")
-                print(f"estimated PCLK: {640 / (href_high_total/line_count) * 200} MHz")
-
-            # pixel data
-            data, vsync, href, pclk = shared.decode_r31(r31)
-            print(f"r31 data: 0x{data:02x}, vsync: {vsync}, href: {href}, pclk: {pclk}")
-
+            print(f"minimum: {minimum}")
+            print(f"maximum: {maximum}")
+            print(f"blank: {blank}")
+            print(f"frame_count: {frame_count}")
             
-            
-            prev_heartbeat = heartbeat
-            prev_cycle = cycle
             prev_time = now
+            prev_frame_count = frame_count
 
             time.sleep(1)
     except KeyboardInterrupt: pass
