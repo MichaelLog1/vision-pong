@@ -18,7 +18,8 @@ void main(void) {
     uint32_t href_high_total = 0;
 
     // initialize shared memeory
-    for (int i = 0; i < 8; i++) {
+    int i;
+    for (i = 0; i < 8; i++) {
         shared[i] = 0;
     }
 
