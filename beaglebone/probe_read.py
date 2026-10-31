@@ -13,6 +13,9 @@ class PhysMem:
     def word(self, i):
         return int(self.words[i])
 
+    def bytes_range(self, start, end):
+        return self.mm[start:end]
+
     def decode_r31(self, r31):
         data = r31 & 0xFF
         vsync = (r31 >> 8) & 0x1
@@ -43,31 +46,56 @@ def main():
 
     prev_time = None
     prev_frame_count = None
+    prev_captures = 0
 
     try:
         while(True):
+            captures = shared.word(4)
+            if (prev_captures == captures):
+                prev_captures = captures
+                time.sleep(0.003)
+                continue
+
+            # captures has changed, we have a new line to read
             now = time.monotonic()
+
+            # read pixel data, starting from byte 64 to 703
+            pixel_data = []
+            for i in shared.bytes_range(64, 704):
+                pixel_data.append(i)
+
             magic = shared.word(0)
-            minimum = shared.word(4)
-            maximum = shared.word(5)
-            blank = shared.word(6)
-            frame_count = shared.word(7)
+            bytes_in_line = shared.word(1)
+            minimum = shared.word(2)
+            maximum = shared.word(3)
 
             if magic != PROBE_MAGIC_VALUE:
                 print(f"INCORRECT MAGIC: 0x{magic:08x}")
 
-            if (prev_frame_count is not None):
-                print(f"elapsed time: {(now - prev_time) / (frame_count - prev_frame_count)}")
-            else:
-                print("elapsed time: division by zero")
+            print(f"bytes in line: {bytes_in_line}")
 
-            print(f"minimum: {minimum}")
-            print(f"maximum: {maximum}")
-            print(f"blank: {blank}")
-            print(f"frame_count: {frame_count}")
-            
+            # do something with the pixels
+            for i in range(8):
+                u_sum = 0
+                v_sum = 0
+                y1_sum = 0
+                y0_sum = 0
+                for j in range(80):
+                    if (j % 4 == 0):
+                        u_sum += pixel_data[i*80 + j]
+                    elif (j % 4 == 1):
+                        y0_sum += pixel_data[i*80 + j]
+                    elif (j % 4 == 2):
+                        v_sum += pixel_data[i*80 + j]
+                    elif (j % 4 == 3):
+                        y1_sum += pixel_data[i*80 + j]
+                u = u_sum / 20
+                v = v_sum / 20
+                y0 = y0_sum / 20
+                y1 = y1_sum / 20
+                print(f"U: {u}, Y0: {y0}, V: {v}, Y1: {y1}")
             prev_time = now
-            prev_frame_count = frame_count
+            prev_captures = captures
 
             time.sleep(1)
     except KeyboardInterrupt: pass

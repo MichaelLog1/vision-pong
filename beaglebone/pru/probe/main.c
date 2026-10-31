@@ -3,76 +3,88 @@
 
 volatile register uint32_t __R31;
 volatile uint32_t *shared = (volatile uint32_t *)0x00010000;
+volatile uint8_t *buffer = (volatile uint8_t *)(0x10000 + 64);
 
 #define VSYNC (1u << 8) // bit 8
 #define HREF (1u << 9) // bit 9
 #define PCLK (1u << 10) // bit 10
-#define MASK (VSYNC | HREF)
+#define BUFFER_OFFSET 0x10000 + 64
 
 void main(void) {
 
-    uint32_t frame_count = 0;
-    uint32_t blank;
-    uint32_t active;
-    uint32_t max;
-    uint32_t min;
+    volatile uint8_t *local_buffer = (volatile uint8_t *)(BUFFER_OFFSET);
 
-    // initialize shared memeory
+    uint32_t bytes_in_line = 0;
+    uint32_t captures = 0;
+    uint32_t last_min_bytes = UINT32_MAX;
+    uint32_t last_max_bytes = 0;
+    uint32_t active = 0;
+
     int i;
-    for (i = 0; i < 8; i++) {
-        shared[i] = 0;
-    }
 
-    shared[0] = 0x50524230;
+    // initialize shared memory
+    shared[0] = 0x50524230; // magic
+    shared[1] = bytes_in_line;
+    shared[2] = last_min_bytes;
+    shared[3] = last_max_bytes;
+    shared[4] = captures;
+
+    // reset CYCLE count and enable the PRU
     PRU1_CTRL.CTRL_bit.CTR_EN = 0;
     PRU1_CTRL.CYCLE = 0;
     PRU1_CTRL.CTRL_bit.CTR_EN = 1;
-        
+
     while (1) {
+        
         // wait until vsync goes high
         while (!(__R31 & VSYNC));
 
         // now wait for vsync to go low
         while (__R31 & VSYNC);
 
-        min = UINT32_MAX;
-        max = 0;
+        local_buffer = (volatile uint8_t *)(BUFFER_OFFSET);
+        bytes_in_line = 0;
+        last_min_bytes = UINT32_MAX;
+        last_max_bytes = 0;
     
         for (i = 0; i < 240; i++) {
-            blank = 0;
-            // while HREF is low, count PCLK rising edges
-            while (!(__R31 & HREF)) {
-                // wait until pclk goes high
-                while (!(__R31 & PCLK));
+            if (i == 120) {
+                active = 0;
+                // wait for HREF to go high, signaling a new line
+                while (!(__R31 & HREF));
 
-                // now wait for pclk to go low
-                while (__R31 & PCLK);
-                blank++;
-            }
-            active = 0;
-            // while HREF is high, count PCLK rising edges
-            while (__R31 & HREF) {
-                // wait until pclk goes high
-                while (!(__R31 & PCLK));
+                while (__R31 & HREF) {
+                    // wait until pclk goes high
+                    while (!(__R31 & PCLK));
 
-                // now wait for pclk to go low
-                while (__R31 & PCLK);
-                active++;
-            }
-            if (active < min) {
-                min = active;
-            }
+                    // pixel data should be ready now
+                    *(local_buffer++) = __R31 & 0xFF;
+                    bytes_in_line++;
+                    active++;
 
-            if (active > max) {
-                max = active;
+                    // now wait for pclk to go low
+                    while (__R31 & PCLK);
+                }
+
+                if (active < last_min_bytes) {
+                    last_min_bytes = active;
+                }
+
+                if (active > last_max_bytes) {
+                    last_max_bytes = active;
+                }  
+            } else {
+                // wait for HREF to go high, signaling a new line
+                while (!(__R31 & HREF));
+
+                // wait for HREF to go low
+                while (__R31 & HREF);
             }            
         }
 
-        // write to shared ram
-        shared[4] = min;
-        shared[5] = max;
-        shared[6] = blank;
-        frame_count++;
-        shared[7] = frame_count;
+        shared[1] = bytes_in_line;
+        shared[2] = last_min_bytes;
+        shared[3] = last_max_bytes;
+        shared[4] = ++captures;
     }
 }
