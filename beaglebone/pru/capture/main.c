@@ -47,9 +47,10 @@ void main(void) {
     shared[3] = 0;                  // flagged frames
     shared[4] = 0;                  // self test results (if this bit is asserted, DDR doesnt work)
 
-    ring[0] = 0;
     // clear standy init
     CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
+    
+    ring[0] = 0;
 
     // test the DDR
     ring[0] = 0xF0F0F0F0;
