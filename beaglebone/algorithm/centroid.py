@@ -1,4 +1,4 @@
-from config import PlayerTrack, PlayerResult
+from .config import PlayerTrack, PlayerResult
 
 import numpy as np
 

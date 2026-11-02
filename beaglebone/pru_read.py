@@ -1,4 +1,4 @@
-from config import PRU_SHARED_PHYS, RING_PHYS, RING_MAGIC_VALUE, RING_SLOT0_OFFSET, RING_SLOT_STRIDE, RING_SLOT_HEADER_BYTES, FRAME_BYTES, RING_SLOT_HEADER_FLAGS
+from config import PRU_SHARED_PHYS, RING_PHYS, RING_MAGIC_VALUE, RING_SLOT0_OFFSET, RING_SLOT_STRIDE, RING_SLOT_HEADER_BYTES, FRAME_BYTES, RING_FLAGS_OFFSET
 
 import time
 import os
@@ -91,7 +91,7 @@ def main():
                 frames_dropped = frames_dropped + curr_slot_seq - prev_ring_seq - 1
 
             # check slot's flags
-            flags = ring.word(slot_word_index + RING_SLOT_HEADER_FLAGS)
+            flags = ring.word(slot_word_index + RING_FLAGS_OFFSET)
             if (flags != 0):
                 frames_flagged = frames_flagged + 1
                 prev_ring_seq = prev_slot_seq

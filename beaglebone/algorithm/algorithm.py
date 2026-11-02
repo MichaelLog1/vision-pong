@@ -1,8 +1,8 @@
-from chroma import chroma_extraction
-from segment import segment
-from erode import erode
-from centroid import centroid
-from config import FrameResult
+from .chroma import chroma_extraction
+from .segment import segment
+from .erode import erode
+from .centroid import centroid
+from .config import FrameResult
 
 def process_frame(frame, cfg, state):
     U0, Y0, V0, Y1 = chroma_extraction(frame, cfg.width, cfg.height)

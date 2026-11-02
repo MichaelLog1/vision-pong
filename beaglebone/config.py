@@ -1,3 +1,5 @@
+from algorithm.config import Bounds, PlayerTrack
+
 from dataclasses import dataclass
 import numpy as np
 
@@ -6,19 +8,31 @@ FRAME_HEIGHT = 240
 CHROMA_WIDTH = FRAME_WIDTH // 2
 FRAME_BYTES = FRAME_WIDTH * FRAME_HEIGHT * 2
 
+
 # PRU firmware constants
 RING_PHYS = 0x9FE00000
-
-# UPDATED firmware constants
-RING_PHYS = 0x9FE00000
 PRU_SHARED_PHYS = 0x4A310000
-RING_MAGIC = 0
-RING_MAGIC_VALUE = 0x31435056
 RING_SLOT0_OFFSET = 0x1000
 RING_SLOT0_PHYS = RING_PHYS + RING_SLOT0_OFFSET
 RING_SLOT_HEADER_BYTES = 0x40
-RING_SLOT_STRIDE = FRAME_BYTES + RING_SLOT_HEADER_BYTES
-RING_SLOT_HEADER_FLAGS = 3
+
+RING_MAGIC_INDEX = 0
+RING_WIDTH_INDEX = 2
+RING_HEIGHT_INDEX = 3
+RING_BPP_INDEX = 4
+RING_BPF_INDEX = 5
+RING_NUM_SLOTS_INDEX = 6
+RING_STRIDE_INDEX = 7
+RING_HEAD_INDEX = 8
+RING_SEQ_INDEX = 9
+RING_T_VSYNC_OFFSET = 1
+RING_T_DONE_OFFSET = 2
+RING_FLAGS_OFFSET = 3
+
+RING_MAGIC_VALUE = 0x31435056
+RING_BPP_VALUE = 2
+RING_NUM_SLOTS_VALUE = 4
+RING_SLOT_STRIDE_VALUE = FRAME_BYTES + RING_SLOT_HEADER_BYTES
 
 # temp constants
 U_MIN = 95
@@ -28,27 +42,6 @@ V_MAX = 210
 Y_MIN = 32
 ERODE_ENABLE = True
 MIN_BLOB = 64
-
-# common classes
-@dataclass
-class PlayerResult:
-    x: np.uint16
-    y: np.uint16
-    count: np.uint32
-    valid: bool
-
-@dataclass
-class FrameResult:
-    p1: PlayerResult
-    p2: PlayerResult
-
-@dataclass(frozen=True)
-class Bounds:
-    U_min: np.uint8
-    U_max: np.uint8
-    V_min: np.uint8
-    V_max: np.uint8
-    Y_min: np.uint8
 
 @dataclass(frozen=True)
 class PlayerConfig:
@@ -62,11 +55,6 @@ class AlgoConfig:
     erode_enable: bool
     p1: PlayerConfig
     p2: PlayerConfig
-
-@dataclass
-class PlayerTrack:
-    last_x: np.uint16
-    last_y: np.uint16
 
 @dataclass
 class AlgoState:

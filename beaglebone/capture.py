@@ -1,9 +1,10 @@
-from config import FRAME_HEIGHT, FRAME_WIDTH, RING_SIZE, RING_PHYS, RING_MAGIC, RING_VERSION, HDR_VERSION, HDR_WIDTH, HDR_HEIGHT, HDR_BPP, HDR_FRAME_BYTES, HDR_N_SLOTS, HDR_STRIDE, SLOT_HEADER_BYTES, SLOT_SEQ, SLOT0_OFFSET
+from config import FRAME_HEIGHT, FRAME_WIDTH, FRAME_BYTES, RING_PHYS, PRU_SHARED_PHYS, RING_SLOT0_OFFSET, RING_SLOT_HEADER_BYTES, RING_MAGIC_INDEX, RING_WIDTH_INDEX, RING_HEIGHT_INDEX, RING_BPP_INDEX, RING_BPF_INDEX, RING_NUM_SLOTS_INDEX, RING_STRIDE_INDEX, RING_HEAD_INDEX, RING_SEQ_INDEX, RING_MAGIC_VALUE, RING_BPP_VALUE, RING_NUM_SLOTS_VALUE, RING_SLOT_STRIDE_VALUE, RING_T_VSYNC_OFFSET, RING_T_DONE_OFFSET, RING_FLAGS_OFFSET
 
 from dataclasses import dataclass
 import numpy as np
 import mmap
 import os
+import time
 
 @dataclass
 class CapturedFrame:
@@ -47,63 +48,127 @@ class FileFrameSource:
 
 
 class PruFrameSource:
-    def __init__(self, dev_path = "/dev/mem", map_size=RING_SIZE, map_offset=RING_PHYS, timeout=0.2):
-        if (map_offset % mmap.ALLOCATIONGRANULARITY != 0):
-            raise ValueError(f"offset needs to be a multiple of {mmap.ALLOCATIONGRANULARITY}")
+    def __init__(self, dev_path = "/dev/mem", timeout=0.2):
+        self.timeout = timeout
         self.fd = os.open(dev_path, os.O_RDONLY | os.O_SYNC)
-        self.mm = mmap.mmap(self.fd, map_size, offset=map_offset, access=mmap.ACCESS_READ)
-        
-        self.hdr = np.frombuffer(self.mm, dtype=np.uint32, count=16, offset=0)
+        self.ring = mmap.mmap(self.fd, 0x98000, offset=RING_PHYS, access=mmap.ACCESS_READ)
+        self.shared = mmap.mmap(self.fd, 4096, offset=PRU_SHARED_PHYS, access=mmap.ACCESS_READ)
+        self.ring_words = memoryview(self.ring).cast("I")
+        self.shared_words = memoryview(self.shared).cast("I")
 
-        if (bytes(self.mm[0:4]) != RING_MAGIC):
-            raise ValueError("Magic incorrect.")
+        self.slot_offset = [
+            (RING_SLOT0_OFFSET),
+            (RING_SLOT0_OFFSET + RING_SLOT_STRIDE_VALUE),
+            (RING_SLOT0_OFFSET + 2 * RING_SLOT_STRIDE_VALUE),
+            (RING_SLOT0_OFFSET + 3 * RING_SLOT_STRIDE_VALUE)
+        ]
 
-        if (int(self.hdr[HDR_VERSION]) != RING_VERSION):
-            raise ValueError("Version incorrect.")
+        self.prev_ring_seq = 0
+        self.frames_dropped = 0
+        self.frames_flagged = 0
+        self.frames_torn = 0
 
-        if (int(self.hdr[HDR_WIDTH]) != FRAME_WIDTH):
-            raise ValueError("Width incorrect.")
+        # start up checks
+        # magic
+        ring_magic = self.ring_words[RING_MAGIC_INDEX]
+        if (ring_magic != RING_MAGIC_VALUE):
+            raise RuntimeError(f"INCORRECT RING MAGIC: 0x{ring_magic:08x}")
 
-        if (int(self.hdr[HDR_HEIGHT]) != FRAME_HEIGHT):
-            raise ValueError("Height incorrect.")
+        # width
+        ring_width = self.ring_words[RING_WIDTH_INDEX]
+        if (ring_width != FRAME_WIDTH):
+            raise RuntimeError(f"INCORRECT RING WIDTH: 0x{ring_width:08x}")
 
-        bpp = int(self.hdr[HDR_BPP])
-        if (bpp != 2):
-            raise ValueError("BPP incorrect.")
+        # height
+        ring_height = self.ring_words[RING_HEIGHT_INDEX]
+        if (ring_height != FRAME_HEIGHT):
+            raise RuntimeError(f"INCORRECT RING HEIGHT: 0x{ring_height:08x}")
 
-        self.frame_bytes = int(self.hdr[HDR_FRAME_BYTES])
-        if (self.frame_bytes != FRAME_WIDTH*FRAME_HEIGHT*bpp):
-            raise ValueError("Frame bytes incorrect.")
+        # bytes per pixel
+        ring_bpp = self.ring_words[RING_BPP_INDEX]
+        if (ring_bpp != RING_BPP_VALUE):
+            raise RuntimeError(f"INCORRECT RING BPP: 0x{ring_bpp:08x}")
 
-        self.n_slots = int(self.hdr[HDR_N_SLOTS])
-        if (self.n_slots < 2):
-            raise ValueError("N slots incorrect")
+        # bytes per frame
+        ring_frame_size = self.ring_words[RING_BPF_INDEX]
+        if (ring_frame_size != FRAME_BYTES):
+            raise RuntimeError(f"INCORRECT RING FRAME SIZE: 0x{ring_frame_size:08x}")
 
-        self.stride = int(self.hdr[HDR_STRIDE])
-        if (self.stride < self.frame_bytes + SLOT_HEADER_BYTES):
-            raise ValueError("Stride incorrect")
+        # num slots
+        ring_num_slots = self.ring_words[RING_NUM_SLOTS_INDEX]
+        if (ring_num_slots != RING_NUM_SLOTS_VALUE):
+            raise RuntimeError(f"INCORRECT RING NUM SLOTS: 0x{ring_num_slots:08x}")
 
-        self.slot_meta = [None]*self.n_slots
-        self.slot_px = [None]*self.n_slots
-        self.last_seq = None
-        self.torn = 0
-        self.bad_frames = 0
-        self.skipped = 0
-        for i in range(self.n_slots):
-            base = SLOT0_OFFSET + i * self.stride
-            self.slot_meta[i] = np.frombuffer(self.mm, dtype=np.uint32, count=4, offset=base)
-            self.slot_px[i] = np.frombuffer(self.mm, dtype=np.uint8, count=self.frame_bytes, offset=base + SLOT_HEADER_BYTES)
-        
+        # stride
+        ring_stride = self.ring_words[RING_STRIDE_INDEX]
+        if (ring_stride != RING_SLOT_STRIDE_VALUE):
+            raise RuntimeError(f"INCORRECT RING SLOT STRIDE: 0x{ring_stride:08x}")
+
+
     def next_frame(self):
         deadline = time.monotonic() + self.timeout
 
         while (True):
-            if (time.monotonic() > deadline):
+            # check timeout
+            if (time.monotonic() >= deadline):
                 return None
 
-            # get header seq
-            if (self.last_seq is not None and seq == self.last_seq):
-                time.sleep(0.001)
+            ring_seq = self.ring_words[RING_SEQ_INDEX]
+            if (ring_seq == self.prev_ring_seq):
+                time.sleep(0.003)
+                continue
+            
+            ring_head = self.ring_words[RING_HEAD_INDEX]
+            if (ring_head > 3):
+                raise RuntimeError(f"ring_head incorrect")
+    
+            slot_offset = self.slot_offset[ring_head]
+            slot_word_index = slot_offset // 4
+            prev_slot_seq = self.ring_words[slot_word_index]
+
+            # read the frame
+            frame = np.frombuffer(self.ring[slot_offset + RING_SLOT_HEADER_BYTES:slot_offset + RING_SLOT_HEADER_BYTES + FRAME_BYTES], dtype=np.uint8)
+            
+            # get timing data
+            t_vsync = self.ring_words[slot_word_index + RING_T_VSYNC_OFFSET]
+            t_done = self.ring_words[slot_word_index + RING_T_DONE_OFFSET]
+            flags = self.ring_words[slot_word_index + RING_FLAGS_OFFSET]
+
+            # curr_slot_seq == 0 means the frame is currently being written
+            curr_slot_seq = self.ring_words[slot_word_index]
+
+            # frame is torn if the slot head has changed
+            if (curr_slot_seq != prev_slot_seq or curr_slot_seq == 0):
+                # PRU started rewriting the slot during the copy
+                self.frames_torn = self.frames_torn + 1
+                continue
+
+            # frames have been dropped if the frame counter increments more than once
+            if (self.prev_ring_seq != 0):
+                self.frames_dropped = self.frames_dropped + curr_slot_seq - self.prev_ring_seq - 1
+
+            # check firmware flags
+            if (flags != 0):
+                self.frames_flagged = self.frames_flagged + 1
+                self.prev_ring_seq = prev_slot_seq
+                continue
+
+            # update state
+            self.prev_ring_seq = prev_slot_seq
+            return CapturedFrame(prev_slot_seq, t_vsync, t_done, flags, frame)
+
+    def close(self):
+        self.ring_words.release()
+        self.shared_words.release()
+        self.ring.close()
+        self.shared.close()
+        os.close(self.fd)
+
+    def status(self):
+        stage = self.shared_words[1]
+        frame_count = self.shared_words[2]
+        frames_flagged_firmware = self.shared_words[3]
+        return stage, frame_count, frames_flagged_firmware, self.frames_dropped, self.frames_torn, self.frames_flagged
 
 def save_frame(path, frame):
     frame.tofile(path)

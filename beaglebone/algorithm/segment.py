@@ -1,4 +1,4 @@
-from config import Bounds
+from .config import Bounds
 
 def segment(U0, Y0, V0, Y1, bounds: Bounds):
     u_in_range = (U0 >= bounds.U_min) & (U0 <= bounds.U_max)

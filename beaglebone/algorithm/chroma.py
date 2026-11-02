@@ -1,4 +1,4 @@
-from config import FRAME_HEIGHT, FRAME_WIDTH
+from .config import FRAME_HEIGHT, FRAME_WIDTH
 
 import numpy as np
 
