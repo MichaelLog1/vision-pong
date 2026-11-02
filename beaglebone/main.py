@@ -75,7 +75,7 @@ def main():
                 latency_roundtrip = 65535
 
             # send over uart
-            uart_link.send(cf.seq, result, (int(latency_roundtrip)).astype(np.uint16))
+            uart_link.send(cf.seq, result, int(latency_roundtrip))
 
             if (print_diagnostics):
                 end = time.perf_counter()
