@@ -49,8 +49,8 @@ def main():
                     print(f"Frames per second: {frames_processed - prev_frames_processed}")
 
                 if (result is not None):
-                    print(f"p1 x: {result.p1.x}, y: {result.p1.y}")
-                    print(f"p2 x: {result.p2.x}, y: {result.p2.y}")
+                    print(f"p1 x: {result.p1.x}, y: {result.p1.y}, count: {result.p1.count}, valid: {result.p1.valid}")
+                    print(f"p2 x: {result.p2.x}, y: {result.p2.y}, count: {result.p2.count}, valid: {result.p2.valid}")
 
                 prev_frames_processed = frames_processed
 

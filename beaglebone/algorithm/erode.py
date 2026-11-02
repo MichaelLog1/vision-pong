@@ -6,10 +6,8 @@ def erode(mask, enable):
 
     rows, cols = mask.shape
     output = np.zeros((rows, cols), dtype=bool)
-    for row in range(rows):
-        for col in range(cols):
-            if (row == 0 or row == rows-1 or col == 0 or col == cols-1):
-                output[row][col] = False
-            elif (mask[row+1][col-1] and mask[row+1][col] and mask[row+1][col+1] and mask[row][col+1] and mask[row][col-1] and mask[row-1][col-1] and mask[row-1][col] and mask[row-1][col+1] and mask[row][col]):
-                output[row][col] = True
+
+    # output's interior is the and of the mask shifted to each of the nine neighbor positions
+    output[1:-1, 1:-1] = mask[:-2, :-2] & mask[:-2, 1:-1] & mask[:-2, 2:] & mask[1:-1, :-2] & mask[1:-1, 1:-1] & mask[1:-1, 2:] & mask[2:, :-2] & mask[2:, 1:-1] & mask[2:, 2:]
+
     return output
