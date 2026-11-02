@@ -241,7 +241,7 @@ class OV5640:
         for reg, data in zip(yuv, yuv):
             self.write(reg, data)
 
-        self.write(0x503D, 0x80)
+        self.write(0x503D, 0x00)
 
         print(f"chip ID 0x{self.chip_id():04X}")
         print(f"clock ctrl 0x{self.read(0x4740):04X}")

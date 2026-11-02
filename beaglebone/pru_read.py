@@ -99,7 +99,7 @@ def main():
 
             # do stuff with the frame
             if (not frame_saved):
-                with open("frame.bin", "wb") as file:
+                with open("frame.yuv", "wb") as file:
                     file.write(pixel_data)
                 frame_Saved = True
 
