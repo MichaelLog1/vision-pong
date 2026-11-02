@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# uart config
+config-pin P9_11 uart
+config-pin P9_13 uart
+
 # pin configuration
 config-pin P8_27 pruin
 config-pin P8_28 pruin
@@ -13,6 +17,7 @@ config-pin P8_43 pruin
 config-pin P8_44 pruin
 config-pin P8_45 pruin
 config-pin P8_46 pruin
+
 
 # release camera reset
 config-pin P8_13 gpio

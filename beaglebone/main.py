@@ -1,6 +1,7 @@
 from algorithm.algorithm import process_frame
 from config import AlgoState, AlgoConfig, PlayerTrack, Bounds, PlayerConfig, FRAME_HEIGHT, FRAME_WIDTH, U_MIN, U_MAX, V_MIN, V_MAX, Y_MIN, MIN_BLOB, ERODE_ENABLE
 from capture import PruFrameSource
+from uart_link import UartLink
 
 import numpy as np
 import time
@@ -23,16 +24,20 @@ def main():
     cfg = AlgoConfig(FRAME_WIDTH, FRAME_HEIGHT, ERODE_ENABLE, p1_config, p2_config)
     
     frame_source = PruFrameSource()
+    uart_link = UartLink()
 
     result = None
     time_sum = 0
     frames_processed = 0
     prev_frames_processed = None
     average_frame_time = None
+
+    # manual debug bool
+    print_diagnostics = False
     
     try:
         while (True):
-            if (time.monotonic() - last_print_time > 1):
+            if (time.monotonic() - last_print_time > 1 and print_diagnostics):
                 last_print_time = time.monotonic()
                 stage, frame_count, frames_flagged_firmware, frames_dropped, frames_torn, frames_flagged = frame_source.status()
                 print(f"Stage: {stage}")
@@ -55,16 +60,28 @@ def main():
                 prev_frames_processed = frames_processed
 
             cf = frame_source.next_frame()
+            latency_start = time.monotonic()
             if (cf is None):
                 print("No frame")
                 continue
-            start = time.perf_counter()
-            result = process_frame(cf.frame, cfg, state)
-            end = time.perf_counter()
+            if (print_diagnostics):
+                start = time.perf_counter()
 
-            time_sum = time_sum + (end - start)
-            frames_processed = frames_processed + 1
-            average_frame_time = time_sum / frames_processed
+            result = process_frame(cf.frame, cfg, state)
+            latency_end = time.monotonic()
+            latency_roundtrip = (latency_end - latency_start) * 1000
+
+            if (latency_roundtrip > 65535):
+                latency_roundtrip = 65535
+
+            # send over uart
+            uart_link.send(cf.seq, result, (int(latency_roundtrip)).astype(np.uint16))
+
+            if (print_diagnostics):
+                end = time.perf_counter()
+                time_sum = time_sum + (end - start)
+                frames_processed = frames_processed + 1
+                average_frame_time = time_sum / frames_processed
 
 
 
