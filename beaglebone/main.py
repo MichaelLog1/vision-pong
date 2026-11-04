@@ -2,6 +2,7 @@ from algorithm.algorithm import process_frame
 from config import AlgoState, AlgoConfig, PlayerTrack, Bounds, PlayerConfig, FRAME_HEIGHT, FRAME_WIDTH, U_MIN, U_MAX, V_MIN, V_MAX, Y_MIN, MIN_BLOB, ERODE_ENABLE
 from capture import PruFrameSource
 from uart_link import UartLink
+from dataclasses import replace
 
 import numpy as np
 import time
@@ -77,6 +78,14 @@ def main():
             # send over uart
             uart_link.send(cf.seq, result, int(latency_roundtrip))
 
+            # poll for new bounds in downtime
+            p1_bounds, p2_bounds = uart_link.poll()
+            if p1_bounds is not None and p2_bounds is not None:
+                print(f"new p1 u min: {p1_bounds.U_min}")
+                cfg = replace(cfg, p1=replace(cfg.p1, bounds=p1_bounds))
+                cfg = replace(cfg, p2=replace(cfg.p2, bounds=p2_bounds))
+
+
             if (print_diagnostics):
                 end = time.perf_counter()
                 time_sum = time_sum + (end - start)
@@ -87,7 +96,7 @@ def main():
 
 
     except KeyboardInterrupt: pass
-    finally: frame_source.close()
+    finally: frame_source.close(); uart_link.close()
     return 
 
 if __name__ == "__main__":
