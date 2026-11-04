@@ -81,7 +81,6 @@ def main():
             # poll for new bounds in downtime
             p1_bounds, p2_bounds = uart_link.poll()
             if p1_bounds is not None and p2_bounds is not None:
-                print(f"new p1 u min: {p1_bounds.U_min}")
                 cfg = replace(cfg, p1=replace(cfg.p1, bounds=p1_bounds))
                 cfg = replace(cfg, p2=replace(cfg.p2, bounds=p2_bounds))
 
