@@ -6,9 +6,10 @@ module spi_slave (
     input logic spi_cs_n,
     output logic spi_miso,
     output logic spi_miso_oe,
-    output logic drdy, // SPI int
 
     input logic cfg_apply,
+
+    input logic [15:0] fab_latency,
 
     // pipeline inputs
     input logic p1_valid,
@@ -111,6 +112,7 @@ module spi_slave (
     logic [15:0] freeze_p2_cx_r;
     logic [15:0] freeze_p2_cy_r;
     logic [15:0] freeze_p2_cnt_r;
+    logic [15:0] freeze_fab_latency_r;
     
     // spi control registers
     logic is_read_r;
@@ -158,8 +160,8 @@ module spi_slave (
             7'h1B: rd_data = freeze_p2_cy_r[15:8];
             7'h1C: rd_data = freeze_p2_cnt_r[7:0];                              // p2_cnt
             7'h1D: rd_data = freeze_p2_cnt_r[15:8];
-            7'h1E: rd_data = '0; // TODO: latency in us, saturating at 0xffff
-            7'h1F: rd_data = '0;
+            7'h1E: rd_data = freeze_fab_latency_r[7:0];
+            7'h1F: rd_data = freeze_fab_latency_r[15:8];
             7'h20: rd_data = p1_u_min_r;
             7'h21: rd_data = p1_u_max_r;
             7'h22: rd_data = p1_v_min_r;
@@ -415,8 +417,9 @@ module spi_slave (
             freeze_p2_cx_r <= '0;
             freeze_p2_cy_r <= '0;
             freeze_p2_cnt_r <= '0;
+            freeze_fab_latency_r <= '0;
         end else begin
-            if (!freeze_r &&  ((state_r == CMD) && (!mosi_shift_r[7]) && (mosi_shift_r[6:0] >= 7'h10 && mosi_shift_r[6:0] <= 7'h1F))) begin
+            if (!freeze_r && !((state_r == CMD) && (rx_valid_r) && (!mosi_shift_r[7]) && (mosi_shift_r[6:0] >= 7'h10 && mosi_shift_r[6:0] <= 7'h1F))) begin
                 freeze_p1_valid_r <= p1_valid;
                 freeze_p2_valid_r <= p2_valid;
                 freeze_frame_count_r <= frame_count;
@@ -426,6 +429,7 @@ module spi_slave (
                 freeze_p2_cx_r <= p2_cx;
                 freeze_p2_cy_r <= p2_cy;
                 freeze_p2_cnt_r <= p2_cnt;
+                freeze_fab_latency_r <= fab_latency;
             end
         end
     end

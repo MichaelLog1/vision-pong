@@ -9,7 +9,6 @@ module threshold (
     input logic [7:0] in_u_max,
     input logic [7:0] in_v_min,
     input logic [7:0] in_v_max,
-    input logic in_luma_gate_en,
     input logic [7:0] in_y_min,
     input logic in_sof,
     input logic in_eol,
@@ -34,7 +33,7 @@ logic v_in_range;
 logic y_in_range;
 assign u_in_range = ((in_u >= in_u_min) && (in_u <= in_u_max));
 assign v_in_range = ((in_v >= in_v_min) && (in_v <= in_v_max));
-assign y_in_range = in_luma_gate_en ? ((in_y0 >= in_y_min) && (in_y1 >= in_y_min)) : 1'b1;
+assign y_in_range = ((in_y0 >= in_y_min) && (in_y1 >= in_y_min));
 
 always_ff @(posedge clk) begin
     if (!rst_n) begin

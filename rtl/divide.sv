@@ -12,7 +12,7 @@ module divide #(
     output logic out_done
 );
 
-    if (DIVIDEND_WIDTH < 2) $fatal(1, "Divisor width must be >= 2, got %0d", DIVISOR_WIDTH);
+    if (DIVIDEND_WIDTH < 2) $fatal(1, "Dividend width must be >= 2, got %0d", DIVISOR_WIDTH);
 
     localparam ITERATION_COUNT = DIVIDEND_WIDTH;
 
@@ -22,7 +22,8 @@ module divide #(
     } state_t;
     state_t state_r, next_state;
 
-    logic [DIVIDEND_WIDTH-1:0] dividend_r, next_dividend, remainder_r, next_remainder;
+    logic [DIVIDEND_WIDTH-1:0] dividend_r, next_dividend;
+    logic [DIVIDEND_WIDTH-1:0] remainder_r, next_remainder;
     logic [DIVISOR_WIDTH-1:0] divisor_r, next_divisor;
     logic [DIVIDEND_WIDTH-1:0] quotient_r, next_quotient;
     logic [$clog2(ITERATION_COUNT)-1:0] count_r, next_count;
