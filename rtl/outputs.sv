@@ -21,6 +21,9 @@ module outputs #(
     input logic [COUNT_WIDTH-1:0] count2,
     input logic [15:0] min_blob2,
     input logic frame_end,
+    input logic [7:0] in_probe_u,
+    input logic [7:0] in_probe_v,
+    input logic [7:0] in_probe_y,
     output logic [15:0] p1_cnt,
     output logic [15:0] p1_cx,
     output logic [15:0] p1_cy,
@@ -31,7 +34,10 @@ module outputs #(
     output logic p2_valid,
     output logic [7:0] frame_count,
     output logic drdy,
-    output logic [15:0] latency
+    output logic [15:0] latency,
+    output logic [7:0] probe_u,
+    output logic [7:0] probe_v,
+    output logic [7:0] probe_y
 );
 
     logic x1_divz;
@@ -68,6 +74,9 @@ module outputs #(
     logic [7:0] frame_count_r;
     logic drdy_r;
     logic [15:0] latency_r;
+    logic [7:0] probe_u_r;
+    logic [7:0] probe_v_r;
+    logic [7:0] probe_y_r;
 
     divide #(
         .DIVIDEND_WIDTH(SUM_X_WIDTH),
@@ -145,6 +154,9 @@ module outputs #(
             latency_r <= '0;
             latency_prescaler_r <= CLK_PER_US-1;
             latency_count_r <= '0;
+            probe_u_r <= '0;
+            probe_v_r <= '0;
+            probe_y_r <= '0;
         end else begin
 
             // latency logic
@@ -175,6 +187,11 @@ module outputs #(
 
                 // increment frame count
                 frame_count_r <= frame_count_r + 1;
+
+                // publish calibration values
+                probe_u_r <= in_probe_u;
+                probe_v_r <= in_probe_v;
+                probe_y_r <= in_probe_y;
 
                 // publish latency
                 latency_r <= latency_count_r;
@@ -223,5 +240,8 @@ module outputs #(
     assign frame_count = frame_count_r;
     assign drdy = drdy_r;
     assign latency = latency_r;
+    assign probe_u = probe_u_r;
+    assign probe_v = probe_v_r;
+    assign probe_y = probe_y_r;
 
 endmodule

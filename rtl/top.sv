@@ -61,6 +61,9 @@ module top #(
     logic chroma_sof;
     logic chroma_eol;
     logic chroma_eof;
+    logic [7:0] chroma_probe_u;
+    logic [7:0] chroma_probe_v;
+    logic [7:0] chroma_probe_y;
 
     // p1 threshold outputs
     logic threshold_p1_mask;
@@ -114,6 +117,9 @@ module top #(
     logic [7:0] outputs_frame_count;
     logic outputs_drdy;
     logic [15:0] outputs_latency;
+    logic [7:0] outputs_probe_u;
+    logic [7:0] outputs_probe_v;
+    logic [7:0] outputs_probe_y;
 
     spi_slave SPI (
         .clk(clk),
@@ -134,9 +140,9 @@ module top #(
         .p2_cnt(outputs_p2_cnt),
         .p2_cx(outputs_p2_cx),
         .p2_cy(outputs_p2_cy),
-        .probe_u('0),
-        .probe_v('0),
-        .probe_y('0),
+        .probe_u(outputs_probe_u),
+        .probe_v(outputs_probe_v),
+        .probe_y(outputs_probe_y),
         .thumbnail_new_frame('0),
         .thumbnail_stage_sel('0),
         .thumbnail_data('0),
@@ -201,7 +207,10 @@ module top #(
         .out_y1(chroma_y1),
         .out_sof(chroma_sof),
         .out_eol(chroma_eol),
-        .out_eof(chroma_eof)
+        .out_eof(chroma_eof),
+        .out_probe_u(chroma_probe_u),
+        .out_probe_v(chroma_probe_v),
+        .out_probe_y(chroma_probe_y)
     );
 
     threshold P1_THRESHOLD (
@@ -337,6 +346,9 @@ module top #(
         .count2(accumulate_p2_count),
         .min_blob2(p2_min_blob),
         .frame_end(capture_frame_end),
+        .in_probe_u(chroma_probe_u),
+        .in_probe_v(chroma_probe_v),
+        .in_probe_y(chroma_probe_y),
         .p1_cnt(outputs_p1_cnt),
         .p1_cx(outputs_p1_cx),
         .p1_cy(outputs_p1_cy),
@@ -347,7 +359,10 @@ module top #(
         .p2_valid(outputs_p2_valid),
         .frame_count(outputs_frame_count),
         .drdy(outputs_drdy),
-        .latency(outputs_latency)
+        .latency(outputs_latency),
+        .probe_u(outputs_probe_u),
+        .probe_v(outputs_probe_v),
+        .probe_y(outputs_probe_y)
     );
 
     assign drdy = outputs_drdy;
