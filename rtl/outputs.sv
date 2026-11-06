@@ -24,6 +24,14 @@ module outputs #(
     input logic [7:0] in_probe_u,
     input logic [7:0] in_probe_v,
     input logic [7:0] in_probe_y,
+    input logic [15:0] in_p1_bbox_x_min,
+    input logic [15:0] in_p1_bbox_y_min,
+    input logic [15:0] in_p1_bbox_x_max,
+    input logic [15:0] in_p1_bbox_y_max,
+    input logic [15:0] in_p2_bbox_x_min,
+    input logic [15:0] in_p2_bbox_y_min,
+    input logic [15:0] in_p2_bbox_x_max,
+    input logic [15:0] in_p2_bbox_y_max,
     output logic [15:0] p1_cnt,
     output logic [15:0] p1_cx,
     output logic [15:0] p1_cy,
@@ -37,7 +45,15 @@ module outputs #(
     output logic [15:0] latency,
     output logic [7:0] probe_u,
     output logic [7:0] probe_v,
-    output logic [7:0] probe_y
+    output logic [7:0] probe_y,
+    output logic [15:0] p1_bbox_x_min,
+    output logic [15:0] p1_bbox_y_min,
+    output logic [15:0] p1_bbox_x_max,
+    output logic [15:0] p1_bbox_y_max,
+    output logic [15:0] p2_bbox_x_min,
+    output logic [15:0] p2_bbox_y_min,
+    output logic [15:0] p2_bbox_x_max,
+    output logic [15:0] p2_bbox_y_max
 );
 
     logic x1_divz;
@@ -77,6 +93,14 @@ module outputs #(
     logic [7:0] probe_u_r;
     logic [7:0] probe_v_r;
     logic [7:0] probe_y_r;
+    logic [15:0] p1_bbox_x_min_r;
+    logic [15:0] p1_bbox_y_min_r;
+    logic [15:0] p1_bbox_x_max_r;
+    logic [15:0] p1_bbox_y_max_r;
+    logic [15:0] p2_bbox_x_min_r;
+    logic [15:0] p2_bbox_y_min_r;
+    logic [15:0] p2_bbox_x_max_r;
+    logic [15:0] p2_bbox_y_max_r;
 
     divide #(
         .DIVIDEND_WIDTH(SUM_X_WIDTH),
@@ -157,6 +181,14 @@ module outputs #(
             probe_u_r <= '0;
             probe_v_r <= '0;
             probe_y_r <= '0;
+            p1_bbox_x_min_r <= '0;
+            p1_bbox_y_min_r <= '0;
+            p1_bbox_x_max_r <= '0;
+            p1_bbox_y_max_r <= '0;
+            p2_bbox_x_min_r <= '0;
+            p2_bbox_y_min_r <= '0;
+            p2_bbox_x_max_r <= '0;
+            p2_bbox_y_max_r <= '0;
         end else begin
 
             // latency logic
@@ -192,6 +224,16 @@ module outputs #(
                 probe_u_r <= in_probe_u;
                 probe_v_r <= in_probe_v;
                 probe_y_r <= in_probe_y;
+
+                // publish bounding box values
+                p1_bbox_x_min_r <= in_p1_bbox_x_min;
+                p1_bbox_y_min_r <= in_p1_bbox_y_min;
+                p1_bbox_x_max_r <= in_p1_bbox_x_max;
+                p1_bbox_y_max_r <= in_p1_bbox_y_max;
+                p2_bbox_x_min_r <= in_p2_bbox_x_min;
+                p2_bbox_y_min_r <= in_p2_bbox_y_min;
+                p2_bbox_x_max_r <= in_p2_bbox_x_max;
+                p2_bbox_y_max_r <= in_p2_bbox_y_max;
 
                 // publish latency
                 latency_r <= latency_count_r;
@@ -243,5 +285,13 @@ module outputs #(
     assign probe_u = probe_u_r;
     assign probe_v = probe_v_r;
     assign probe_y = probe_y_r;
+    assign p1_bbox_x_min = p1_bbox_x_min_r;
+    assign p1_bbox_y_min = p1_bbox_y_min_r;
+    assign p1_bbox_x_max = p1_bbox_x_max_r;
+    assign p1_bbox_y_max = p1_bbox_y_max_r;
+    assign p2_bbox_x_min = p2_bbox_x_min_r;
+    assign p2_bbox_y_min = p2_bbox_y_min_r;
+    assign p2_bbox_x_max = p2_bbox_x_max_r;
+    assign p2_bbox_y_max = p2_bbox_y_max_r;
 
 endmodule

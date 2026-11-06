@@ -98,12 +98,20 @@ module top #(
     logic [$clog2(MAX_SUM_Y)-1:0] accumulate_p1_sum_y;
     logic [$clog2(CHROMA_WIDTH*HEIGHT+1)-1:0] accumulate_p1_count;
     logic accumulate_p1_valid;
+    logic [15:0] accumulate_p1_x_min;
+    logic [15:0] accumulate_p1_y_min;
+    logic [15:0] accumulate_p1_x_max;
+    logic [15:0] accumulate_p1_y_max;
 
     // p2 accumulate outputs
     logic [$clog2(MAX_SUM_X)-1:0] accumulate_p2_sum_x;
     logic [$clog2(MAX_SUM_Y)-1:0] accumulate_p2_sum_y;
     logic [$clog2(CHROMA_WIDTH*HEIGHT+1)-1:0] accumulate_p2_count;
     logic accumulate_p2_valid;
+    logic [15:0] accumulate_p2_x_min;
+    logic [15:0] accumulate_p2_y_min;
+    logic [15:0] accumulate_p2_x_max;
+    logic [15:0] accumulate_p2_y_max;
 
     // outputs outpus
     logic [15:0] outputs_p1_cnt;
@@ -120,6 +128,14 @@ module top #(
     logic [7:0] outputs_probe_u;
     logic [7:0] outputs_probe_v;
     logic [7:0] outputs_probe_y;
+    logic [15:0] outputs_p1_bbox_x_min;
+    logic [15:0] outputs_p1_bbox_y_min;
+    logic [15:0] outputs_p1_bbox_x_max;
+    logic [15:0] outputs_p1_bbox_y_max;
+    logic [15:0] outputs_p2_bbox_x_min;
+    logic [15:0] outputs_p2_bbox_y_min;
+    logic [15:0] outputs_p2_bbox_x_max;
+    logic [15:0] outputs_p2_bbox_y_max;
 
     spi_slave SPI (
         .clk(clk),
@@ -146,14 +162,14 @@ module top #(
         .thumbnail_new_frame('0),
         .thumbnail_stage_sel('0),
         .thumbnail_data('0),
-        .p1_bbox_x_min('0),
-        .p1_bbox_y_min('0),
-        .p1_bbox_x_max('0),
-        .p1_bbox_y_max('0),
-        .p2_bbox_x_min('0),
-        .p2_bbox_y_min('0),
-        .p2_bbox_x_max('0),
-        .p2_bbox_y_max('0),
+        .p1_bbox_x_min(outputs_p1_bbox_x_min),
+        .p1_bbox_y_min(outputs_p1_bbox_y_min),
+        .p1_bbox_x_max(outputs_p1_bbox_x_max),
+        .p1_bbox_y_max(outputs_p1_bbox_y_max),
+        .p2_bbox_x_min(outputs_p2_bbox_x_min),
+        .p2_bbox_y_min(outputs_p2_bbox_y_min),
+        .p2_bbox_x_max(outputs_p2_bbox_x_max),
+        .p2_bbox_y_max(outputs_p2_bbox_y_max),
         .p1_u_min(p1_u_min),
         .p1_u_max(p1_u_max),
         .p1_v_min(p1_v_min),
@@ -167,7 +183,7 @@ module top #(
         .p1_min_blob(p1_min_blob),
         .p2_min_blob(p2_min_blob),
         .erode_en(erode_en),
-        .debug_stage_sel('0)
+        .debug_stage_sel()
     );
 
     assign spi_miso = (spi_miso_oe_internal == 1'b1) ? spi_miso_internal : 1'bz;
@@ -307,7 +323,11 @@ module top #(
         .out_sum_x(accumulate_p1_sum_x),
         .out_sum_y(accumulate_p1_sum_y),
         .out_pixel_count(accumulate_p1_count),
-        .out_valid(accumulate_p1_valid)
+        .out_valid(accumulate_p1_valid),
+        .x_min(accumulate_p1_x_min),
+        .y_min(accumulate_p1_y_min),
+        .x_max(accumulate_p1_x_max),
+        .y_max(accumulate_p1_y_max)
     );
 
     accumulate #(
@@ -324,7 +344,11 @@ module top #(
         .out_sum_x(accumulate_p2_sum_x),
         .out_sum_y(accumulate_p2_sum_y),
         .out_pixel_count(accumulate_p2_count),
-        .out_valid(accumulate_p2_valid)
+        .out_valid(accumulate_p2_valid),
+        .x_min(accumulate_p2_x_min),
+        .y_min(accumulate_p2_y_min),
+        .x_max(accumulate_p2_x_max),
+        .y_max(accumulate_p2_y_max)
     );
 
     outputs #(
@@ -349,6 +373,14 @@ module top #(
         .in_probe_u(chroma_probe_u),
         .in_probe_v(chroma_probe_v),
         .in_probe_y(chroma_probe_y),
+        .in_p1_bbox_x_min(accumulate_p1_x_min),
+        .in_p1_bbox_y_min(accumulate_p1_y_min),
+        .in_p1_bbox_x_max(accumulate_p1_x_max),
+        .in_p1_bbox_y_max(accumulate_p1_y_max),
+        .in_p2_bbox_x_min(accumulate_p2_x_min),
+        .in_p2_bbox_y_min(accumulate_p2_y_min),
+        .in_p2_bbox_x_max(accumulate_p2_x_max),
+        .in_p2_bbox_y_max(accumulate_p2_y_max),
         .p1_cnt(outputs_p1_cnt),
         .p1_cx(outputs_p1_cx),
         .p1_cy(outputs_p1_cy),
@@ -362,7 +394,15 @@ module top #(
         .latency(outputs_latency),
         .probe_u(outputs_probe_u),
         .probe_v(outputs_probe_v),
-        .probe_y(outputs_probe_y)
+        .probe_y(outputs_probe_y),
+        .p1_bbox_x_min(outputs_p1_bbox_x_min),
+        .p1_bbox_y_min(outputs_p1_bbox_y_min),
+        .p1_bbox_x_max(outputs_p1_bbox_x_max),
+        .p1_bbox_y_max(outputs_p1_bbox_y_max),
+        .p2_bbox_x_min(outputs_p2_bbox_x_min),
+        .p2_bbox_y_min(outputs_p2_bbox_y_min),
+        .p2_bbox_x_max(outputs_p2_bbox_x_max),
+        .p2_bbox_y_max(outputs_p2_bbox_y_max)
     );
 
     assign drdy = outputs_drdy;
