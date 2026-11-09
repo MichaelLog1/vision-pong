@@ -57,10 +57,14 @@ module spi_slave (
     output logic [7:0] p2_v_max,
     output logic [7:0] p2_y_min,
 
-    output logic [15:0] p1_min_blob,  // if we need it, gates potentially extraneous color regions
+    output logic [15:0] p1_min_blob,    // if we need it, gates potentially extraneous color regions
     output logic [15:0] p2_min_blob,
-    output logic erode_en,             // can get rid of erode stage just to see performance improvements
-    output logic [1:0] debug_stage_sel // debug output if needed
+    output logic erode_en,              // can get rid of erode stage just to see performance improvements
+    output logic [1:0] debug_stage_sel, // debug output if needed
+    
+    // thumbnail control
+    output logic swap,
+    output logic advance
 );
     localparam device_id = 8'hA5;
 
@@ -123,6 +127,8 @@ module spi_slave (
     logic [7:0] tx_byte_r;
     logic rx_valid_r;
 
+    logic thumb_stream_r;
+
     // comb
     logic sclk_rise;
     logic sclk_fall;
@@ -181,7 +187,7 @@ module spi_slave (
             7'h32: rd_data = probe_y;
             7'h3F: rd_data = device_id;
             7'h40: rd_data = { 5'h00, thumbnail_stage_sel, thumbnail_new_frame }; // [0] new frame, [2:1] stage of buffered frame
-            7'h41: rd_data = thumbnail_data;
+            7'h41: rd_data = '0; // dont return live pixels
             7'h50: rd_data = p1_bbox_x_min[7:0];
             7'h51: rd_data = p1_bbox_x_min[15:8];
             7'h52: rd_data = p1_bbox_y_min[7:0];
@@ -225,7 +231,9 @@ module spi_slave (
             p2_v_min_r <= '0;
             p2_v_max_r <= '0;
             p2_y_min_r <= 32;
+            thumb_stream_r <= 1'b0;
         end else begin
+
             case (state_r)
                 IDLE: begin
                     if (!spi_cs_n_sync[1]) begin
@@ -243,6 +251,8 @@ module spi_slave (
                         // we dont want to be in the middle of a frame read and the frame data changes.
                         // we will use this as a sort of 'lock' to keep the data stable during a read
                         if ((!mosi_shift_r[7]) && (mosi_shift_r[6:0] >= 7'h10 && mosi_shift_r[6:0] <= 7'h1F)) freeze_r <= 1'b1;
+
+                        thumb_stream_r <= (!mosi_shift_r[7]) && (mosi_shift_r[6:0] == 7'h41);
                     end
 
                     if (spi_cs_n_sync[1]) begin
@@ -252,7 +262,9 @@ module spi_slave (
                 end
 
                 PAYLOAD: begin
-                    if (rx_valid_r) begin
+                    if (thumb_stream_r) begin
+                        tx_byte_r <= thumbnail_data;
+                    end else if (rx_valid_r) begin
                         addr_r <= addr_r + 1;
                         if (is_read_r) begin
                             tx_byte_r <= rd_data;
@@ -301,7 +313,8 @@ module spi_slave (
     assign p2_y_min = active_p2_y_min_r;
     assign p1_min_blob = active_p1_min_blob_r;
     assign p2_min_blob = active_p2_min_blob_r;
-    
+    assign swap = (state_r == CMD) && (rx_valid_r) && (!mosi_shift_r[7]) && (mosi_shift_r[6:0] == 7'h40);
+    assign advance = (state_r == PAYLOAD) && (rx_valid_r) && (thumb_stream_r);
 
     // shift register
     always_ff @(posedge clk) begin

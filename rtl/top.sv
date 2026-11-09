@@ -38,6 +38,7 @@ module top #(
     logic [15:0] p1_min_blob;
     logic [15:0] p2_min_blob;
     logic erode_en;
+    logic [1:0] debug_stage_sel;
 
     logic spi_miso_internal;
     logic spi_miso_oe_internal;
@@ -137,6 +138,13 @@ module top #(
     logic [15:0] outputs_p2_bbox_x_max;
     logic [15:0] outputs_p2_bbox_y_max;
 
+    // thumbnail outputs
+    logic thumbnail_swap;
+    logic thumbnail_advance;
+    logic thumbnail_new_frame;
+    logic [1:0] thumbnail_buf_stage;
+    logic [7:0] thumbnail_data;
+
     spi_slave SPI (
         .clk(clk),
         .rst_n(rst_n),
@@ -159,9 +167,9 @@ module top #(
         .probe_u(outputs_probe_u),
         .probe_v(outputs_probe_v),
         .probe_y(outputs_probe_y),
-        .thumbnail_new_frame('0),
-        .thumbnail_stage_sel('0),
-        .thumbnail_data('0),
+        .thumbnail_new_frame(thumbnail_new_frame),
+        .thumbnail_stage_sel(thumbnail_buf_stage),
+        .thumbnail_data(thumbnail_data),
         .p1_bbox_x_min(outputs_p1_bbox_x_min),
         .p1_bbox_y_min(outputs_p1_bbox_y_min),
         .p1_bbox_x_max(outputs_p1_bbox_x_max),
@@ -183,7 +191,9 @@ module top #(
         .p1_min_blob(p1_min_blob),
         .p2_min_blob(p2_min_blob),
         .erode_en(erode_en),
-        .debug_stage_sel()
+        .debug_stage_sel(debug_stage_sel),
+        .swap(thumbnail_swap),
+        .advance(thumbnail_advance)
     );
 
     assign spi_miso = (spi_miso_oe_internal == 1'b1) ? spi_miso_internal : 1'bz;
@@ -406,5 +416,40 @@ module top #(
     );
 
     assign drdy = outputs_drdy;
+
+    thumbnail #(
+        .WIDTH(),
+        .HEIGHT()
+    ) THUMBNAIL (
+        .clk(clk),
+        .rst_n(rst_n),
+        .pipe_rst_n(pipe_rst_n),
+        .stage_sel(debug_stage_sel),
+        .c_valid(chroma_valid),
+        .c_sof(chroma_sof),
+        .c_eol(chroma_eol),
+        .c_eof(chroma_eof),
+        .c_u(chroma_u),
+        .c_y0(chroma_y0),
+        .c_v(chroma_v),
+        .c_y1(chroma_y1),
+        .t_valid(threshold_p1_valid),
+        .t_sof(threshold_p1_sof),
+        .t_eol(threshold_p1_eol),
+        .t_eof(threshold_p1_eof),
+        .t_mask1(threshold_p1_mask),
+        .t_mask2(threshold_p2_mask),
+        .e_valid(erode_p1_valid),
+        .e_sof(erode_p1_sof),
+        .e_eol(erode_p1_eol),
+        .e_eof(erode_p1_eof),
+        .e_mask1(erode_p1_mask),
+        .e_mask2(erode_p2_mask),
+        .swap(thumbnail_swap),
+        .advance(thumbnail_advance),
+        .new_frame(thumbnail_new_frame),
+        .buf_stage(thumbnail_buf_stage),
+        .data(thumbnail_data)
+    );
 
 endmodule
