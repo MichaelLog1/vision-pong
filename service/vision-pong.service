@@ -1,0 +1,13 @@
+[Unit]
+Description=Vision Pong fabric start
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=-/bin/sh -c 'echo fclk0 > /sys/devices/soc0/amba/f8007000.devcfg/fclk_export'
+ExecStartPre=/bin/sh -c 'echo 100000000 > /sys/devices/soc0/amba/f8007000.devcfg/fclk/fclk0/set_rate'
+ExecStart=/bin/sh -c 'cat /root/workspace/vision-pong/board.bit > /dev/xdevcfg'
+ExecStartPost=/bin/sh -c 'test "$$(cat /sys/kernel/debug/clk/fclk0/clk_rate)" = 99999999'
+
+[Install]
+WantedBy=multi-user.target
