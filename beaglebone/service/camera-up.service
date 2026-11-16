@@ -1,0 +1,13 @@
+[Unit]
+Description=OV5640 camera bring up and PRU1 start
+After=generic-board-startup.service
+Wants=generic-board-startup.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/debian/vision-pong/beaglebone/
+ExecStart=/home/debian/vision-pong/beaglebone/camera_up.sh
+
+[Install]
+WantedBy=multi-user.target

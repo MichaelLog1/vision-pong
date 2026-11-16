@@ -1,0 +1,16 @@
+[Unit]
+Description=Vision Pong software baseline start
+After=camera-up.service
+Requires=camera-up.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/debian/vision-pong/beaglebone/
+ExecStart=/usr/bin/python3 /home/debian/vision-pong/beaglebone/main.py
+Restart=on-failure
+RestartSec=2
+KillSignal=SIGINT
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

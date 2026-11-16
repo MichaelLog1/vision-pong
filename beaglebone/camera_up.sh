@@ -29,3 +29,7 @@ echo low | tee /sys/class/gpio/gpio89/direction
 
 # run init script
 python3 ov5640_init.py
+
+if [[ "$(< /sys/class/remoteproc/remoteproc2/state)" != "running" ]]; then
+    echo start > /sys/class/remoteproc/remoteproc2/state
+fi
