@@ -30,6 +30,16 @@ echo low | tee /sys/class/gpio/gpio89/direction
 # run init script
 python3 ov5640_init.py
 
+for i in {1..40}; do
+    [[ -e /sys/class/remoteproc/remoteproc2/state ]] && break
+    sleep 0.5
+done
+
+if [[ ! -e "/sys/class/remoteproc/remoteproc2/state" ]]; then
+    echo "Timed out after 20 s waiting for /sys/class/remoteproc/remoteproc2/state" >&2
+    exit 1
+fi
+
 if [[ "$(< /sys/class/remoteproc/remoteproc2/state)" != "running" ]]; then
     echo start > /sys/class/remoteproc/remoteproc2/state
 fi
