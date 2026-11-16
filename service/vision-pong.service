@@ -1,5 +1,6 @@
 [Unit]
 Description=Vision Pong fabric start
+After=redpitaya_startup.service
 
 [Service]
 Type=oneshot
