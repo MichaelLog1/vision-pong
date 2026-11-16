@@ -30,7 +30,7 @@ echo low | tee /sys/class/gpio/gpio89/direction
 # run init script
 python3 ov5640_init.py
 
-for i in {1..40}; do
+for i in {1..120}; do
     [[ -e /sys/class/remoteproc/remoteproc2/state ]] && break
     sleep 0.5
 done
