@@ -364,8 +364,7 @@ module top #(
     outputs #(
         .FRAME_WIDTH(CHROMA_WIDTH),
         .FRAME_HEIGHT(HEIGHT),
-        .DOWN_COUNT(200),
-        .CLK_PER_US(100) // assume 100 MHz
+        .DOWN_COUNT(200)
     ) OUTPUTS (
         .clk(clk),
         .rst_n(rst_n),

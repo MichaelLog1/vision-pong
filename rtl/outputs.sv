@@ -2,7 +2,6 @@ module outputs #(
     parameter int unsigned FRAME_WIDTH = 160,
     parameter int unsigned FRAME_HEIGHT = 240,
     parameter int unsigned DOWN_COUNT = 200,
-    parameter int unsigned CLK_PER_US = 100, // assume 100 MHz clock for now
     localparam int unsigned SUM_X_WIDTH = $clog2(FRAME_HEIGHT*FRAME_WIDTH*(FRAME_WIDTH-1)+1),
     localparam int unsigned SUM_Y_WIDTH = $clog2(FRAME_WIDTH*FRAME_HEIGHT*(FRAME_HEIGHT-1)/2+1),
     localparam int unsigned COUNT_WIDTH = $clog2(FRAME_WIDTH*FRAME_HEIGHT+1),
@@ -75,7 +74,6 @@ module outputs #(
     logic y2_done_sticky;
 
     logic [DOWN_COUNT_WIDTH-1:0] down_count_r;
-    logic [$clog2(CLK_PER_US)-1:0] latency_prescaler_r;
     logic [15:0] latency_count_r;
 
     // outputs
@@ -176,7 +174,6 @@ module outputs #(
             drdy_r <= 1'b0;
             down_count_r <= '0;
             latency_r <= '0;
-            latency_prescaler_r <= CLK_PER_US-1;
             latency_count_r <= '0;
             probe_u_r <= '0;
             probe_v_r <= '0;
@@ -193,15 +190,9 @@ module outputs #(
 
             // latency logic
             if (frame_end) begin
-                latency_prescaler_r <= CLK_PER_US-1;
                 latency_count_r <= '0;
             end else begin
-                if (latency_prescaler_r == 0) begin
-                    latency_prescaler_r <= CLK_PER_US-1;
-                    latency_count_r <= (latency_count_r == 16'hFFFF) ? latency_count_r : latency_count_r + 1;
-                end else begin
-                    latency_prescaler_r <= latency_prescaler_r - 1;
-                end
+                latency_count_r <= (latency_count_r == 16'hFFFF) ? latency_count_r : latency_count_r + 1;
             end
 
 
